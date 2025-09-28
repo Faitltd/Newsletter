@@ -22,7 +22,13 @@ async function fetchCalendar(url) {
   const now = Date.now();
   const cached = cache.get(url);
   if (cached && (now - cached.ts) < CACHE_TTL_MS) return cached.data;
-  const data = await ical.async.fromURL(url);
+  const requestOptions = {
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (compatible; FAITEvents/1.0; +https://events.itsfait.com)'
+    },
+    timeout: 15000
+  };
+  const data = await ical.async.fromURL(url, requestOptions);
   cache.set(url, { ts: now, data });
   return data;
 }
