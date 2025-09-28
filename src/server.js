@@ -18,6 +18,9 @@ app.use(bodyParser.urlencoded({ extended: true }));
 // Simple in-memory cache per calendar URL
 const cache = new Map(); // url -> { ts: number, data: any }
 
+// Per-source status (last fetch outcome)
+const sourceStatus = new Map(); // url -> { ok: boolean, ts: number, name: string, error?: string }
+
 async function fetchCalendar(url) {
   const now = Date.now();
   const cached = cache.get(url);
@@ -76,6 +79,7 @@ app.get('/api/events', async (req, res) => {
         limit(async () => {
           try {
             const data = await fetchCalendar(cal.url);
+            sourceStatus.set(cal.url, { ok: true, ts: Date.now(), name: cal.name });
             for (const key in data) {
               const ev = data[key];
               if (ev && ev.type === 'VEVENT' && ev.start instanceof Date) {
@@ -94,6 +98,7 @@ app.get('/api/events', async (req, res) => {
             }
           } catch (err) {
             console.error('Failed to fetch ' + cal.name + ':', (err && err.message) ? err.message : err);
+            sourceStatus.set(cal.url, { ok: false, ts: Date.now(), name: cal.name, error: (err && err.message) ? err.message : String(err) });
           }
         })
       )
@@ -107,6 +112,30 @@ app.get('/api/events', async (req, res) => {
     console.error('Error in /api/events:', err);
     res.status(500).json({ error: 'Failed to fetch events' });
   }
+});
+
+// Lightweight health/status endpoint
+app.get('/api/health', (req, res) => {
+  const status = calendars.map((c) => {
+    const cached = cache.get(c.url);
+    const s = sourceStatus.get(c.url);
+    return {
+      name: c.name,
+      url: c.url,
+      cachedAt: cached ? new Date(cached.ts).toISOString() : null,
+      lastStatus: s || null,
+    };
+  });
+  res.json({
+    ok: true,
+    config: {
+      cors_origin: ALLOWED_ORIGIN,
+      cache_ttl_ms: CACHE_TTL_MS,
+      fetch_concurrency: FETCH_CONCURRENCY,
+      now: new Date().toISOString(),
+    },
+    sources: status,
+  });
 });
 
 const port = process.env.PORT || 8080;

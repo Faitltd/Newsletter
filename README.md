@@ -12,6 +12,13 @@ This repository contains a clean, from-zero to live backend to aggregate free pu
 - Custom domain: events.itsfait.com mapped to the Cloud Run service.
 
 ---
+## Docs (project plan)
+- Coverage Plan: docs/COVERAGE_PLAN.md
+- Sources Registry: docs/SOURCES_REGISTRY.md
+- Data Model: docs/DATA_MODEL.md
+- Ingestion Pipeline: docs/INGESTION_PIPELINE.md
+
+
 
 ## 2) Local dev (optional but handy)
 
