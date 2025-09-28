@@ -26,6 +26,9 @@ Columns:
 | gv-cat-44 | Greenwood Village | ICS | Recreation (catID=44) | https://greenwoodvillage.com/common/modules/iCalendar/iCalendar.aspx?catID=44&feed=calendar | recreation | Active | TBD/TBD/TBD | Verified working |
 | gv-cat-46 | Greenwood Village | ICS | Special Events (catID=46) | https://greenwoodvillage.com/common/modules/iCalendar/iCalendar.aspx?catID=46&feed=calendar | special events | Active | TBD/TBD/TBD | Verified working |
 | hrmd | Highlands Ranch Metro District | ICS | HRMD Calendar | https://hrmdco.specialdistrict.org/common/modules/iCalendar/export.aspx?feed=calendar&lang=en | community, parks/rec | Active | TBD/TBD/TBD | Verified working |
+| doug-county | Douglas County | ICS | County Calendar (month feed) | https://www.douglas.co.us/calendar/month/?ical=1 | civic, community | Active | TBD/TBD/TBD | WP month ICS export |
+| englewood-lib | Englewood Public Library | ICS | LibCal – All Calendars | https://englewoodpl-co.libcal.com/calendar/?cid=-1&t=m&d=0000-00-00&cal=-1&inc=0&format=ical | education, family | Testing | - | LibCal ICS feed; may adjust filters |
+
 
 ---
 
