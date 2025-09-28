@@ -1,23 +1,14 @@
 {
-  "name": "suburban-events-web",
+  "name": "south-suburban-events",
   "version": "1.0.0",
-  "type": "module",
   "private": true,
   "scripts": {
-    "start": "node src/server.js",
-    "run-once": "node src/run-once.js"
+    "start": "node src/server.js"
   },
   "dependencies": {
-    "@libsql/client": "^0.15.15",
-    "axios": "^1.7.7",
-    "better-sqlite3": "^9.6.0",
-    "cheerio": "^1.0.0-rc.12",
-    "dotenv": "^17.2.2",
     "express": "^4.19.2",
-    "fast-xml-parser": "^4.5.0",
-    "luxon": "^3.5.0",
-    "node-ical": "^0.18.0",
-    "nodemailer": "^6.9.14",
-    "p-limit": "^5.0.0"
+    "body-parser": "^1.20.2",
+    "node-ical": "^0.21.0",
+    "cors": "^2.8.5"
   }
 }
