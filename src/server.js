@@ -10,6 +10,21 @@ const ALLOWED_ORIGIN = process.env.CORS_ORIGIN || 'https://faitevents.beehiiv.co
 const CACHE_TTL_MS = parseInt(process.env.CACHE_TTL_MS || '600000', 10); // 10 minutes
 const FETCH_CONCURRENCY = parseInt(process.env.FETCH_CONCURRENCY || '4', 10);
 
+
+// Optional API providers (opt-in via env)
+const EVENTBRITE_ENABLED = (process.env.EVENTBRITE_ENABLED || 'false') === 'true';
+const EVENTBRITE_TOKEN = process.env.EVENTBRITE_TOKEN || '';
+const TM_ENABLED = (process.env.TM_ENABLED || 'false') === 'true';
+const TM_API_KEY = process.env.TM_API_KEY || '';
+// South Suburban Denver defaults; configurable via env
+const API_GEO_LAT = process.env.API_GEO_LAT || '39.6133';
+const API_GEO_LON = process.env.API_GEO_LON || '-104.9895';
+const API_RADIUS_MILES = process.env.API_RADIUS_MILES || '25';
+
+// Per-API status (last fetch outcome)
+const apiStatus = new Map(); // name -> { ok: boolean, ts: number, name: string, error?: string }
+
+
 const app = express();
 app.use(cors({ origin: ALLOWED_ORIGIN }));
 app.use(bodyParser.json());
@@ -44,6 +59,78 @@ function pLimit(concurrency) {
     if (active >= concurrency || queue.length === 0) return;
     active++;
     const { fn, resolve, reject } = queue.shift();
+
+// Optional: Eventbrite integration
+async function fetchEventbrite(now, cutoff) {
+  if (!EVENTBRITE_ENABLED || !EVENTBRITE_TOKEN) return [];
+  try {
+    const params = new URLSearchParams({
+      'location.latitude': String(API_GEO_LAT),
+      'location.longitude': String(API_GEO_LON),
+      'location.within': `${API_RADIUS_MILES}mi`,
+      'start_date.range_start': now.toISOString(),
+      'start_date.range_end': cutoff.toISOString(),
+      'expand': 'venue',
+      'page': '1'
+    });
+    const url = 'https://www.eventbriteapi.com/v3/events/search/?' + params.toString();
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${EVENTBRITE_TOKEN}` } });
+    if (!res.ok) throw new Error(`Eventbrite HTTP ${res.status}`);
+    const json = await res.json();
+    const events = Array.isArray(json.events) ? json.events : [];
+    apiStatus.set('Eventbrite', { ok: true, ts: Date.now(), name: 'Eventbrite' });
+    return events.map((e) => ({
+      source: 'Eventbrite',
+      title: (e.name && e.name.text) || '',
+      description: (e.description && e.description.text) || '',
+      location: (e.venue && (e.venue.name || (e.venue.address && e.venue.address.localized_address_display))) || '',
+      start: e.start && (e.start.utc ? new Date(e.start.utc) : (e.start.local ? new Date(e.start.local) : null)),
+      end: e.end && (e.end.utc ? new Date(e.end.utc) : (e.end.local ? new Date(e.end.local) : null)),
+      url: e.url || ''
+    })).filter((x) => x.start && x.start >= now && x.start <= cutoff);
+  } catch (err) {
+    console.error('Eventbrite fetch failed:', err && err.message ? err.message : err);
+    apiStatus.set('Eventbrite', { ok: false, ts: Date.now(), name: 'Eventbrite', error: (err && err.message) ? err.message : String(err) });
+    return [];
+  }
+}
+
+// Optional: Ticketmaster integration
+async function fetchTicketmaster(now, cutoff) {
+  if (!TM_ENABLED || !TM_API_KEY) return [];
+  try {
+    const params = new URLSearchParams({
+      apikey: TM_API_KEY,
+      latlong: `${API_GEO_LAT},${API_GEO_LON}`,
+      radius: String(API_RADIUS_MILES),
+      unit: 'miles',
+      countryCode: 'US',
+      size: '100',
+      startDateTime: now.toISOString(),
+      endDateTime: cutoff.toISOString(),
+    });
+    const url = 'https://app.ticketmaster.com/discovery/v2/events.json?' + params.toString();
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`Ticketmaster HTTP ${res.status}`);
+    const json = await res.json();
+    const events = (json && json._embedded && Array.isArray(json._embedded.events)) ? json._embedded.events : [];
+    apiStatus.set('Ticketmaster', { ok: true, ts: Date.now(), name: 'Ticketmaster' });
+    return events.map((e) => ({
+      source: 'Ticketmaster',
+      title: e.name || '',
+      description: '',
+      location: (e._embedded && e._embedded.venues && e._embedded.venues[0] && e._embedded.venues[0].name) || '',
+      start: (e.dates && e.dates.start && (e.dates.start.dateTime ? new Date(e.dates.start.dateTime) : (e.dates.start.localDate ? new Date(e.dates.start.localDate) : null))) || null,
+      end: null,
+      url: e.url || ''
+    })).filter((x) => x.start && x.start >= now && x.start <= cutoff);
+  } catch (err) {
+    console.error('Ticketmaster fetch failed:', err && err.message ? err.message : err);
+    apiStatus.set('Ticketmaster', { ok: false, ts: Date.now(), name: 'Ticketmaster', error: (err && err.message) ? err.message : String(err) });
+    return [];
+  }
+}
+
     Promise.resolve()
       .then(fn)
       .then((v) => resolve(v))
@@ -104,6 +191,19 @@ app.get('/api/events', async (req, res) => {
       )
     );
 
+    // Optionally augment with API providers
+    try {
+      const [eb, tm] = await Promise.all([
+        fetchEventbrite(now, cutoff),
+        fetchTicketmaster(now, cutoff)
+      ]);
+      if (Array.isArray(eb) && eb.length) all.push(...eb);
+      if (Array.isArray(tm) && tm.length) all.push(...tm);
+    } catch (_) {
+      // Individual fetchers record their own status; continue regardless
+    }
+
+
     // Sort soonest first
     all.sort((a, b) => new Date(a.start) - new Date(b.start));
 
@@ -132,9 +232,15 @@ app.get('/api/health', (req, res) => {
       cors_origin: ALLOWED_ORIGIN,
       cache_ttl_ms: CACHE_TTL_MS,
       fetch_concurrency: FETCH_CONCURRENCY,
+      api_geo: { lat: Number(API_GEO_LAT), lon: Number(API_GEO_LON), radius_miles: Number(API_RADIUS_MILES) },
+      providers: { eventbrite_enabled: EVENTBRITE_ENABLED, ticketmaster_enabled: TM_ENABLED },
       now: new Date().toISOString(),
     },
     sources: status,
+    apis: [
+      { name: 'Eventbrite', enabled: EVENTBRITE_ENABLED, lastStatus: apiStatus.get('Eventbrite') || null },
+      { name: 'Ticketmaster', enabled: TM_ENABLED, lastStatus: apiStatus.get('Ticketmaster') || null },
+    ],
   });
 });
 

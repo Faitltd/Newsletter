@@ -14,6 +14,11 @@ module.exports = [
   { name: "Douglas County – County Calendar (month)", url: "https://www.douglas.co.us/calendar/month/?ical=1" },
 
   // Englewood Public Library (LibCal)
-  { name: "Englewood Public Library – All Calendars (LibCal)", url: "https://englewoodpl-co.libcal.com/calendar/?cid=-1&t=m&d=0000-00-00&cal=-1&inc=0&format=ical" }
-];
+  { name: "Englewood Public Library – All Calendars (LibCal)", url: "https://englewoodpl-co.libcal.com/calendar/?cid=-1&t=m&d=0000-00-00&cal=-1&inc=0&format=ical" },
 
+  // Arapahoe County (Revize calendar; ICS month view)
+  { name: "Arapahoe County – County Calendar (month)", url: "https://www.arapahoeco.gov/calendar.php?view=month&month=09&day=01&year=2025&ical=1" },
+
+  // City of Lone Tree (The Events Calendar)
+  { name: "City of Lone Tree – Events", url: "https://cityoflonetree.com/events/?ical=1" }
+];
