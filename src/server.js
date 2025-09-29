@@ -59,6 +59,21 @@ function pLimit(concurrency) {
     if (active >= concurrency || queue.length === 0) return;
     active++;
     const { fn, resolve, reject } = queue.shift();
+    Promise.resolve()
+      .then(fn)
+      .then((v) => resolve(v))
+      .catch((e) => reject(e))
+      .finally(() => {
+        active--;
+        next();
+      });
+  };
+  return (fn) => new Promise((resolve, reject) => {
+    queue.push({ fn, resolve, reject });
+    setImmediate(next);
+  });
+}
+const limit = pLimit(FETCH_CONCURRENCY);
 
 // Optional: Eventbrite integration
 async function fetchEventbrite(now, cutoff) {
@@ -131,21 +146,6 @@ async function fetchTicketmaster(now, cutoff) {
   }
 }
 
-    Promise.resolve()
-      .then(fn)
-      .then((v) => resolve(v))
-      .catch((e) => reject(e))
-      .finally(() => {
-        active--;
-        next();
-      });
-  };
-  return (fn) => new Promise((resolve, reject) => {
-    queue.push({ fn, resolve, reject });
-    setImmediate(next);
-  });
-}
-const limit = pLimit(FETCH_CONCURRENCY);
 
 // Root (optional info/health page)
 app.get('/', (req, res) => {
