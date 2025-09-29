@@ -60,10 +60,10 @@ Columns:
 
 | ID | Provider | Type | Name | Access | Category | Status | Notes |
 |---|---|---|---|---|---|---|---|
-| eventbrite | Eventbrite | API | Eventbrite API | API key (Secret Manager) | all | Testing (opt-in) | Implemented in code; enable via EVENTBRITE_ENABLED + EVENTBRITE_TOKEN |
+| eventbrite | Eventbrite | API | Eventbrite API | API key (Secret Manager) | all | Testing (opt-in) | Implemented; auto-enabled when EVENTBRITE_TOKEN present (override with EVENTBRITE_ENABLED=false) |
 | meetup | Meetup | API | Meetup API | OAuth/API key (Secret Manager) | tech, hobby, networking | Planned | Group queries by geo |
 | bandsintown | Bandsintown | API | Bandsintown API | API key (Secret Manager) | music | Planned | Venue + metro queries |
-| ticketmaster | Ticketmaster | API | Discovery API | API key (Secret Manager) | concerts, sports | Testing (opt-in) | Implemented in code; enable via TM_ENABLED + TM_API_KEY |
+| ticketmaster | Ticketmaster | API | Discovery API | API key (Secret Manager) | concerts, sports | Testing (opt-in) | Implemented; auto-enabled when TM_API_KEY present (override with TM_ENABLED=false) |
 | predicthq | PredictHQ | API | PredictHQ API | API key (Secret Manager) | major events | Optional | Paid |
 
 ---

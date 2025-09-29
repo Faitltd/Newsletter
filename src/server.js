@@ -12,10 +12,12 @@ const FETCH_CONCURRENCY = parseInt(process.env.FETCH_CONCURRENCY || '4', 10);
 
 
 // Optional API providers (opt-in via env)
-const EVENTBRITE_ENABLED = (process.env.EVENTBRITE_ENABLED || 'false') === 'true';
 const EVENTBRITE_TOKEN = process.env.EVENTBRITE_TOKEN || '';
-const TM_ENABLED = (process.env.TM_ENABLED || 'false') === 'true';
+// Auto-enable Eventbrite if token present, unless explicitly disabled via EVENTBRITE_ENABLED=false
+const EVENTBRITE_ENABLED = Boolean(EVENTBRITE_TOKEN) && (process.env.EVENTBRITE_ENABLED !== 'false');
 const TM_API_KEY = process.env.TM_API_KEY || '';
+// Auto-enable Ticketmaster if key present, unless explicitly disabled via TM_ENABLED=false
+const TM_ENABLED = Boolean(TM_API_KEY) && (process.env.TM_ENABLED !== 'false');
 // South Suburban Denver defaults; configurable via env
 const API_GEO_LAT = process.env.API_GEO_LAT || '39.6133';
 const API_GEO_LON = process.env.API_GEO_LON || '-104.9895';
